@@ -104,5 +104,5 @@ app.delete('/api/todos/:id', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT} - CI/CD Active`);
 });
