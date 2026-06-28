@@ -1,0 +1,328 @@
+/* Reset and Layout Base overrides */
+body {
+  background: linear-gradient(135deg, hsl(222, 47%, 12%) 0%, hsl(224, 64%, 6%) 100%);
+  color: hsl(210, 40%, 98%);
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border-inline: none;
+  min-height: auto;
+  display: block;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* App Container */
+.todo-app-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* Header Styles */
+.app-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-badge {
+  background: linear-gradient(90deg, hsl(263, 90%, 65%), hsl(280, 85%, 60%));
+  color: white;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 14px hsla(263, 90%, 65%, 0.3);
+}
+
+.app-header h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0;
+  background: linear-gradient(to right, #ffffff, #a5b4fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -1px;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: hsla(222, 47%, 20%, 0.6);
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 1px solid hsla(222, 47%, 30%, 0.5);
+  font-size: 0.85rem;
+  color: hsl(215, 20%, 75%);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+
+.status-dot.connecting {
+  background-color: hsl(45, 93%, 47%);
+  box-shadow: 0 0 8px hsl(45, 93%, 47%);
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.status-dot.online {
+  background-color: hsl(142, 71%, 45%);
+  box-shadow: 0 0 8px hsl(142, 71%, 45%);
+}
+
+.status-dot.offline {
+  background-color: hsl(0, 84%, 60%);
+  box-shadow: 0 0 8px hsl(0, 84%, 60%);
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+/* Card Container */
+.app-card {
+  background: hsla(222, 47%, 16%, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  border: 1px solid hsla(222, 47%, 28%, 0.5);
+  padding: 30px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Todo Form */
+.todo-form {
+  display: flex;
+  gap: 12px;
+}
+
+.todo-form input {
+  flex: 1;
+  background: hsla(222, 47%, 10%, 0.8);
+  border: 1px solid hsla(222, 47%, 30%, 0.8);
+  padding: 14px 20px;
+  border-radius: 12px;
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.todo-form input:focus {
+  outline: none;
+  border-color: hsl(263, 90%, 65%);
+  box-shadow: 0 0 0 3px hsla(263, 90%, 65%, 0.25);
+}
+
+.todo-form input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.todo-form button {
+  background: linear-gradient(135deg, hsl(263, 90%, 65%) 0%, hsl(275, 80%, 55%) 100%);
+  color: white;
+  border: none;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px hsla(263, 90%, 65%, 0.3);
+}
+
+.todo-form button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px hsla(263, 90%, 65%, 0.45);
+}
+
+.todo-form button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.todo-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Error Banner */
+.error-banner {
+  background-color: hsla(0, 84%, 60%, 0.15);
+  border: 1px solid hsla(0, 84%, 60%, 0.3);
+  color: hsl(0, 84%, 75%);
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Loading & Empty State */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 40px 0;
+  color: hsl(215, 20%, 65%);
+  font-size: 0.95rem;
+}
+
+/* Todo List */
+.todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  background: hsla(222, 47%, 12%, 0.5);
+  border: 1px solid hsla(222, 47%, 24%, 0.4);
+  padding: 14px 18px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.todo-item:hover {
+  background: hsla(222, 47%, 14%, 0.8);
+  border-color: hsla(222, 47%, 32%, 0.6);
+  transform: translateX(2px);
+}
+
+.todo-item.completed {
+  background: hsla(222, 47%, 10%, 0.3);
+  border-color: hsla(222, 47%, 20%, 0.2);
+}
+
+.todo-item.completed .todo-title {
+  text-decoration: line-through;
+  color: hsl(215, 15%, 50%);
+}
+
+.todo-title {
+  flex: 1;
+  font-size: 1rem;
+  color: hsl(210, 40%, 95%);
+  margin-left: 12px;
+  word-break: break-word;
+  transition: color 0.3s ease;
+}
+
+/* Custom Checkbox */
+.checkbox-container {
+  display: block;
+  position: relative;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  background-color: hsla(222, 47%, 8%, 0.8);
+  border: 2px solid hsla(222, 47%, 30%, 0.8);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.checkbox-container:hover input ~ .checkmark {
+  border-color: hsl(263, 90%, 65%);
+}
+
+.checkbox-container input:checked ~ .checkmark {
+  background-color: hsl(263, 90%, 65%);
+  border-color: hsl(263, 90%, 65%);
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.checkbox-container .checkmark:after {
+  left: 6px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Delete Button */
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: hsl(215, 15%, 50%);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  background-color: hsla(0, 84%, 60%, 0.15);
+  color: hsl(0, 84%, 65%);
+}
+
+/* Footer */
+.app-footer {
+  text-align: center;
+  font-size: 0.8rem;
+  color: hsl(215, 15%, 50%);
+}
+
+.app-footer p {
+  margin: 0;
+}

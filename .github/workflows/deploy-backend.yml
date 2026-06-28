@@ -1,0 +1,44 @@
+name: Deploy Backend to VPS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy backend via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            # Navigate to the project directory
+            if [ -d "/var/www/vps-deploy" ]; then
+              cd /var/www/vps-deploy
+            else
+              cd /var/www/farypor-project
+            fi
+            
+            # Pull latest code
+            git pull origin main
+            
+            # Navigate to backend, install dependencies, run migrations and restart PM2
+            cd backend
+            npm install
+            
+            # Generate Prisma client and sync database schema
+            npx prisma generate
+            npx prisma db push
+            
+            # Restart or start backend with PM2
+            pm2 restart farypor-api || pm2 start server.js --name farypor-api
+            pm2 save
