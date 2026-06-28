@@ -9,9 +9,33 @@ on:
       - ".github/workflows/deploy-backend.yml"
 
 jobs:
-  deploy:
+  test:
+    name: Check Syntax and Validate Code
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Verify Code Syntax
+        run: |
+          node --check backend/server.js
+
+  deploy:
+    name: Deploy to VPS
+    needs: test
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy backend via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -21,24 +45,18 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            # Navigate to the project directory
             if [ -d "/var/www/vps-deploy" ]; then
               cd /var/www/vps-deploy
             else
               cd /var/www/farypor-project
             fi
             
-            # Pull latest code
             git pull origin main
             
-            # Navigate to backend, install dependencies, run migrations and restart PM2
             cd backend
             npm install
-            
-            # Generate Prisma client and sync database schema
             npx prisma generate
             npx prisma db push
             
-            # Restart or start backend with PM2
             pm2 restart farypor-api || pm2 start server.js --name farypor-api
             pm2 save
