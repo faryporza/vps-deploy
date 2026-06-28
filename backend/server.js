@@ -107,5 +107,3 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT} - CI/CD Active`);
 });
 
-// Deliberate syntax error to test CI/CD fail-safe check
-const thisIsABrokenLine =
