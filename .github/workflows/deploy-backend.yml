@@ -12,6 +12,7 @@ jobs:
   test:
     name: Check Syntax and Validate Code
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -20,7 +21,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: backend/package-lock.json
 
       - name: Install Dependencies
@@ -36,6 +37,7 @@ jobs:
     name: Deploy to VPS
     needs: test
     runs-on: ubuntu-latest
+
     steps:
       - name: Deploy backend via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -45,18 +47,23 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
+            set -e
+
             if [ -d "/var/www/vps-deploy" ]; then
               cd /var/www/vps-deploy
             else
               cd /var/www/farypor-project
             fi
-            
+
             git pull origin main
-            
+
             cd backend
-            npm install
+
+            npm ci
+
             npx prisma generate
             npx prisma db push
-            
-            pm2 restart farypor-api || pm2 start server.js --name farypor-api
+
+            pm2 restart farypor-api || pm2 start npm --name farypor-api -- start
+
             pm2 save

@@ -48,7 +48,7 @@ app.post('/api/todos', async (req, res) => {
   }
 });
 
-// PUT update todo
+// PUT update todo.
 app.put('/api/todos/:id', async (req, res) => {
   const { id } = req.params;
   const { title, completed } = req.body;
@@ -106,4 +106,3 @@ app.delete('/api/todos/:id', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT} - CI/CD Active`);
 });
-
