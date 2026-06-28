@@ -99,7 +99,6 @@ function App() {
   const handleDeleteTodo = async (id) => {
     try {
       // Optimistic delete
-      const previousTodos = [...todos];
       setTodos((prev) => prev.filter((todo) => todo.id !== id));
 
       const res = await fetch(`${API_URL}/api/todos/${id}`, {
@@ -126,11 +125,11 @@ function App() {
     <div className="todo-app-container">
       <header className="app-header">
         <div className="header-badge">VPS & Docker MySQL Demo</div>
-        <h1>📋 Tasks Manager</h1>
+        <h1>Sticky Notes</h1>
         <div className="status-indicator">
           <span className={`status-dot ${apiStatus}`}></span>
           <span className="status-text">
-            Backend API is {apiStatus === 'online' ? 'Online' : apiStatus === 'offline' ? 'Offline' : 'Connecting...'}
+            API {apiStatus === 'online' ? 'Online' : apiStatus === 'offline' ? 'Offline' : 'Connecting...'}
           </span>
         </div>
       </header>
@@ -139,13 +138,13 @@ function App() {
         <form onSubmit={handleAddTodo} className="todo-form">
           <input
             type="text"
-            placeholder="Add a new task..."
+            placeholder="Write a quick note..."
             value={newTodoTitle}
             onChange={(e) => setNewTodoTitle(e.target.value)}
             disabled={apiStatus === 'offline'}
           />
           <button type="submit" disabled={apiStatus === 'offline' || !newTodoTitle.trim()}>
-            Add Task
+            Add Note
           </button>
         </form>
 
@@ -155,7 +154,7 @@ function App() {
           <div className="loading-state">Loading tasks...</div>
         ) : todos.length === 0 ? (
           <div className="empty-state">
-            <p>No tasks yet. Create one above to get started!</p>
+            <p>No notes yet. Add your first sticky above.</p>
           </div>
         ) : (
           <ul className="todo-list">
