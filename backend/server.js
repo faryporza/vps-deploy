@@ -154,11 +154,11 @@ async function sendLineReply(replyToken, messageText) {
   }
 }
 
-// Process calling the chatbot and getting DeepSeek response from Azure
+// Process calling the chatbot and getting GPT/DeepSeek response from Azure
 async function handleBotReply(replyToken, userId, queryText) {
   const apiKey = process.env.AZURE_DEEPSEEK_API_KEY;
   const endpoint = "https://ai-api-resource.services.ai.azure.com/openai/v1";
-  const deploymentName = "DeepSeek-V4-Flash";
+  const deploymentName = "gpt-5.2-chat";
 
   if (!apiKey) {
     console.warn('AZURE_DEEPSEEK_API_KEY not set');
