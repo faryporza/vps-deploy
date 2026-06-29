@@ -424,9 +424,48 @@ body {
     text-align: center;
   }
 
-  .todo-form,
-  .todo-list {
+  .todo-form {
     grid-template-columns: 1fr;
+  }
+
+  .todo-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .todo-item {
+    grid-template-columns: 20px 1fr 26px;
+    gap: 6px;
+    min-height: 92px;
+    padding: 14px 10px 12px;
+  }
+
+  .todo-title {
+    font-size: 0.88rem;
+    line-height: 1.3;
+  }
+
+  .checkbox-container {
+    width: 19px;
+    height: 19px;
+  }
+
+  .checkmark {
+    width: 17px;
+    height: 17px;
+    border-radius: 5px;
+  }
+
+  .checkmark::after {
+    left: 5px;
+    top: 1px;
+    width: 4px;
+    height: 9px;
+  }
+
+  .delete-btn {
+    width: 26px;
+    height: 26px;
   }
 
   .todo-form button {
