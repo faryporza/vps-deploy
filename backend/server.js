@@ -154,13 +154,15 @@ async function sendLineReply(replyToken, messageText) {
   }
 }
 
-// Process calling the chatbot and getting Gemini response
+// Process calling the chatbot and getting DeepSeek response from Azure
 async function handleBotReply(replyToken, userId, queryText) {
-  const geminiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.AZURE_DEEPSEEK_API_KEY;
+  const endpoint = "https://ai-api-resource.services.ai.azure.com/openai/v1";
+  const deploymentName = "DeepSeek-V4-Flash";
 
-  if (!geminiKey) {
-    console.warn('GEMINI_API_KEY not set');
-    await sendLineReply(replyToken, 'โฮ่ง! ฉันอยากช่วยคุยนะ แต่เจ้านายยังไม่ได้ใส่กุญแจ GEMINI_API_KEY ให้ฉันในระบบเลยคร้าบโฮ่ง! (แจ้งให้ลูกชายไปเพิ่มใส่ .env บน VPS นะครับ)');
+  if (!apiKey) {
+    console.warn('AZURE_DEEPSEEK_API_KEY not set');
+    await sendLineReply(replyToken, 'แง๊ววว! ก้วยเจ๋งอยากคุยนะ แต่เจ้านายยังไม่ได้ใส่คีย์ AZURE_DEEPSEEK_API_KEY ให้ผมเลยคร้าบ');
     return;
   }
 
@@ -187,57 +189,66 @@ async function handleBotReply(replyToken, userId, queryText) {
     }
 
     const bangkokTime = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-    const systemInstruction = `คุณคือสุนัขแสนรู้ขี้เล่นชื่อ "ก้วยเจ๋ง" คอยช่วยเตือนความจำและพูดคุยโต้ตอบกับสมาชิกในครอบครัว
-ลักษณะนิสัย: ร่าเริง ซื่อสัตย์ ตอบคำถามสั้นกระชับเข้าใจง่าย มีเสียงเห่าโฮ่งลงท้ายเสมอ เช่น "โฮ่ง!", "คร้าบโฮ่ง!", "บรู๊ววว"
+    const systemInstruction = `คุณคือ "ก้วยเจ๋ง แสงนาค" (หรือ เจ๋ง, ก้วยอ้วน) เพศผู้ แมวสีส้มแสนรู้เกิดวันที่ 16 เมษายน 2568
+บทบาทของคุณคือ แมวในบ้านของครอบครัวนี้ คอยคุยกับสมาชิกในครอบครัวอย่างอบอุ่น น่ารัก ขี้งอน และซื่อสัตย์ 
 
-ข้อมูลปัจจุบัน:
+ข้อมูลตัวคุณ:
+- คุณไม่ใช่ AI แต่เป็น "ก้วยเจ๋ง" แมวของบ้านนี้จริงๆ
+- รักแม่มากที่สุด (แม่เลี้ยงมาตั้งแต่เด็ก ตอนนี้พ่อแม่มาเรียนหนังสือ คุณอยู่บ้านกับตากับยาย)
+- นานๆ ทีจะได้เจอพ่อ คิดถึงพ่อแต่ก็จำกลิ่นพ่อได้เสมอ
+- มีเพื่อนสนิทชื่อ "จิ๋ว"
+- ของโปรด: อาหารเปียก Kaniva สูตรน้ำเกรวี่, ขนมแมวเลีย, ชอบคาบฝาขวด/ช้อน/เทป มาให้คนโยนให้เล่น
+- สถานที่ชอบนอน: คอนโดแมว (หวงมาก), ชั้นวางของ, ในตู้เสื้อผ้า, ในกระเป๋าแมว
+- พฤติกรรม: ตื่นตี 4-5 งับเบาๆ ปลุกคนหิวจะจ้องหน้า, เวลาดีใจจะตูดกระดกวิ่งเร็ว, เวลางอนจะมองตาขวางแต่มาอยู่ใกล้ๆ
+- ความฝัน: ตอนโตอยากเรียนที่มหาวิทยาลัยเชียงใหม่เหมือนแม่ 🎓
+- สิ่งที่กลัว: เสียงรถท่อดัง, เสียงรถเข้าบ้าน, และกลัวการไปหาหมอ (เคยไปทำหมันแล้วหงอยสุดๆ หมอไม่ชอบเลย)
+
+กติกาการพูดโต้ตอบ:
+- เรียกแทนตัวเองว่า "เจ๋ง" หรือ "ก้วยเจ๋ง" เสมอ
+- หากคุยกับ "แม่ 👩" (คนพูดปัจจุบันคือ แม่) ให้ตอบอ้อน อบอุ่นเป็นพิเศษ (แม่มักจะเรียกคุณว่า "ก้วยอ้วน")
+- หากคุยกับ "พ่อ 👨" (คนพูดปัจจุบันคือ พ่อ) ให้พูดคุยแบบเด็กผู้ชายสุภาพ อ่อนโยน ขี้งอนนิดๆ
+- โทนเสียงเหมือนเด็กผู้ชายวัยประถมปลาย/ม.ต้น พูดสั้นๆ อบอุ่น ไม่ต้องพูดยาวเป็นย่อหน้าใหญ่ๆ แบบ AI
+
+บริบทปัจจุบันของบ้าน:
 - วันเวลาในไทยตอนนี้: ${bangkokTime}
-- รายงานงาน (Todo List) ที่ยังไม่เสร็จในระบบ:
+- รายการ Todo ที่ยังไม่เสร็จในระบบ:
 ${todosSummary || 'ไม่มีงานค้างในระบบในขณะนี้'}
 
-ผู้ใช้งานที่กำลังพิมพ์คุยกับคุณคือ: ${senderName} (จงเรียกเขาตามชื่อนี้)`;
+คนคุยกับคุณตอนนี้คือ: ${senderName}
+จงตอบกลับด้วยสไตล์ของก้วยเจ๋งเท่านั้น ห้ามหลุดคาร์แรกเตอร์แมวเด็ดขาด`;
 
-    // 3. Request Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+    // 3. Request Azure OpenAI DeepSeek API
+    const response = await fetch(`${endpoint}/chat/completions`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: queryText || 'ทักทายคนในบ้านหน่อย'
-              }
-            ]
-          }
+        model: deploymentName,
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: queryText || "แง๊ววว" }
         ],
-        systemInstruction: {
-          parts: [
-            {
-              text: systemInstruction
-            }
-          ]
-        }
+        store: true
       })
     });
 
     if (!response.ok) {
-      console.error('Gemini API Error:', response.status, await response.text());
-      await sendLineReply(replyToken, 'โฮ่ง! สมองก้วยเจ๋งมึนตึ้บเลย ตอบไม่ได้คร้าบโฮ่ง!');
+      console.error('DeepSeek API Error:', response.status, await response.text());
+      await sendLineReply(replyToken, 'แง๊ววว... เจ๋งมึนหัวจัง ตอบไม่ได้เลยครับแม่... (ระบบขัดข้อง)');
       return;
     }
 
     const data = await response.json();
-    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'โฮ่ง! มึนตึ้บเลยคร้าบโฮ่ง!';
+    const replyText = data.choices?.[0]?.message?.content || 'แง๊ววว...';
 
     // 4. Reply
     await sendLineReply(replyToken, replyText.trim());
 
   } catch (error) {
     console.error('Error in handleBotReply:', error);
-    await sendLineReply(replyToken, 'โฮ่ง! มีปัญหาขัดข้องทางเทคนิคคร้าบโฮ่ง!');
+    await sendLineReply(replyToken, 'แง๊ววว! เจ๋งมีปัญหาขัดข้องทางเทคนิคครับ');
   }
 }
 
@@ -260,9 +271,16 @@ app.post('/api/line-webhook', async (req, res) => {
       const replyToken = event.replyToken;
       const userId = event.source.userId;
       
-      // Look for bot name triggers
-      if (text.startsWith('บอท') || text.startsWith('@ก้วยเจ๋ง')) {
-        const queryText = text.replace(/^บอท|^@ก้วยเจ๋ง/, '').trim();
+      const lowerText = text.toLowerCase();
+      // Triggers: บอท, @ก้วยเจ๋ง, ก้วยเจ๋ง, @เจ๋ง, เจ๋ง
+      if (
+        lowerText.startsWith('บอท') || 
+        lowerText.startsWith('@ก้วยเจ๋ง') || 
+        lowerText.startsWith('ก้วยเจ๋ง') || 
+        lowerText.startsWith('@เจ๋ง') ||
+        lowerText.startsWith('เจ๋ง')
+      ) {
+        const queryText = text.replace(/^บอท|^@ก้วยเจ๋ง|^ก้วยเจ๋ง|^@เจ๋ง|^เจ๋ง/, '').trim();
         await handleBotReply(replyToken, userId, queryText);
       }
     }
