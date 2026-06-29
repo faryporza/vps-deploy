@@ -32,6 +32,8 @@ function MascotCloud({ className = '' }) {
 function App() {
   const [todos, setTodos] = useState([]);
   const [newTodoTitle, setNewTodoTitle] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [notifyBeforeMinutes, setNotifyBeforeMinutes] = useState('0');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [apiStatus, setApiStatus] = useState('connecting');
@@ -73,7 +75,11 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title: newTodoTitle }),
+        body: JSON.stringify({
+          title: newTodoTitle,
+          dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+          notifyBeforeMinutes: parseInt(notifyBeforeMinutes)
+        }),
       });
 
       if (!res.ok) {
@@ -83,6 +89,8 @@ function App() {
       const createdTodo = await res.json();
       setTodos((prev) => [createdTodo, ...prev]);
       setNewTodoTitle('');
+      setDueDate('');
+      setNotifyBeforeMinutes('0');
     } catch (err) {
       console.error(err);
       alert('Failed to add todo. Please try again.');
@@ -185,14 +193,44 @@ function App() {
 
       <main className="app-card">
         <form onSubmit={handleAddTodo} className="todo-form">
-          <input
-            type="text"
-            placeholder="Create a new task block..."
-            value={newTodoTitle}
-            onChange={(e) => setNewTodoTitle(e.target.value)}
-            disabled={apiStatus === 'offline'}
-          />
-          <button type="submit" disabled={apiStatus === 'offline' || !newTodoTitle.trim()}>
+          <div className="form-inputs-group">
+            <input
+              type="text"
+              placeholder="Create a new task block..."
+              value={newTodoTitle}
+              onChange={(e) => setNewTodoTitle(e.target.value)}
+              disabled={apiStatus === 'offline'}
+              required
+            />
+            <div className="form-alert-config">
+              <div className="input-field">
+                <label>📅 Due Date</label>
+                <input
+                  type="datetime-local"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  disabled={apiStatus === 'offline'}
+                />
+              </div>
+              <div className="input-field">
+                <label>🔔 Alert Before</label>
+                <select
+                  value={notifyBeforeMinutes}
+                  onChange={(e) => setNotifyBeforeMinutes(e.target.value)}
+                  disabled={apiStatus === 'offline'}
+                >
+                  <option value="0">At time of event</option>
+                  <option value="5">5 minutes before</option>
+                  <option value="15">15 minutes before</option>
+                  <option value="30">30 minutes before</option>
+                  <option value="60">1 hour before</option>
+                  <option value="120">2 hours before</option>
+                  <option value="1440">1 day before</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <button type="submit" className="form-submit-btn" disabled={apiStatus === 'offline' || !newTodoTitle.trim()}>
             Add Block
           </button>
         </form>
@@ -218,7 +256,15 @@ function App() {
                   />
                   <span className="checkmark"></span>
                 </label>
-                <span className="todo-title">{todo.title}</span>
+                <div className="todo-details">
+                  <span className="todo-title">{todo.title}</span>
+                  {todo.dueDate && (
+                    <span className="todo-due-date">
+                      📅 Due: {new Date(todo.dueDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}
+                      {todo.notifyBeforeMinutes > 0 && ` (${todo.notifyBeforeMinutes}m alert)`}
+                    </span>
+                  )}
+                </div>
                 <button
                   type="button"
                   className="delete-btn"

@@ -226,51 +226,83 @@ body {
 }
 
 .todo-form {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
   background: rgba(255, 247, 248, 0.72);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
-.todo-form input {
+.form-inputs-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-alert-config {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input-field label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  font-family: var(--font-display);
+}
+
+.todo-form input,
+.todo-form select {
   min-width: 0;
   min-height: 40px;
   padding: 0 12px;
   color: var(--foreground);
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 10px;
   box-sizing: border-box;
   font: 500 0.92rem/1.4 var(--font-body);
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.todo-form select {
+  cursor: pointer;
 }
 
 .todo-form input::placeholder {
   color: #a1a1aa;
 }
 
-.todo-form input:focus {
+.todo-form input:focus,
+.todo-form select:focus {
   outline: none;
   border-color: var(--rose);
   box-shadow: 0 0 0 3px var(--ring);
 }
 
-.todo-form input:disabled {
+.todo-form input:disabled,
+.todo-form select:disabled {
   opacity: 0.62;
   cursor: not-allowed;
 }
 
-.todo-form button {
+.form-submit-btn {
   min-height: 40px;
   padding: 0 14px;
   color: #ffffff;
   background: #ec9ea4;
   border: 1px solid #e9939a;
   border-radius: 999px;
-  font: 700 0.9rem/1 var(--font-display);
+  font: 700 0.95rem/1 var(--font-display);
   cursor: pointer;
   transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
@@ -376,6 +408,21 @@ body {
 .todo-item.completed .todo-title {
   color: var(--muted);
   text-decoration: line-through;
+}
+
+.todo-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.todo-due-date {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+  font-family: var(--font-body);
+  opacity: 0.85;
 }
 
 .todo-title {

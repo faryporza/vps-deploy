@@ -8,8 +8,11 @@ generator client {
 }
 
 model Todo {
-  id        Int      @id @default(autoincrement())
-  title     String
-  completed Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id                  Int       @id @default(autoincrement())
+  title               String
+  completed           Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  dueDate             DateTime?
+  notifyBeforeMinutes Int?      @default(0)
+  isNotified          Boolean   @default(false)
 }
