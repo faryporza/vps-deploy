@@ -28,6 +28,28 @@ app.get('/api/todos', async (req, res) => {
   }
 });
 
+// Function to send LINE Notify
+async function sendLineNotify(message) {
+  const token = process.env.LINE_NOTIFY_TOKEN;
+  if (!token) return; // ถ้าไม่ได้ใส่ Token ไว้ ก็ให้ข้ามไปเลย
+
+  try {
+    const response = await fetch('https://notify-api.line.me/api/notify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Bearer ${token}`
+      },
+      body: new URLSearchParams({ message })
+    });
+    if (!response.ok) {
+      console.error('LINE Notify failed:', response.status, await response.text());
+    }
+  } catch (error) {
+    console.error('Error sending LINE Notify:', error);
+  }
+}
+
 // POST create todo
 app.post('/api/todos', async (req, res) => {
   const { title } = req.body;
@@ -41,6 +63,10 @@ app.post('/api/todos', async (req, res) => {
         title: title.trim()
       }
     });
+
+    // ส่งแจ้งเตือนเข้า LINE
+    sendLineNotify(`\nมีรายการใหม่เพิ่มเข้ามา!\n📝 ${newTodo.title}`);
+
     res.status(201).json(newTodo);
   } catch (error) {
     console.error('Error creating todo:', error);
