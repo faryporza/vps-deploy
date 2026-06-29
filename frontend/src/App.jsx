@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import './App.css';
+import cuteCaptions from './cute-captions.json';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const randomCaption = () => cuteCaptions[Math.floor(Math.random() * cuteCaptions.length)];
 
 function MascotCloud({ className = '' }) {
   return (
@@ -33,6 +35,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [apiStatus, setApiStatus] = useState('connecting');
+  const [headerCaption] = useState(randomCaption);
 
   // Check API health and fetch initial todos
   useEffect(() => {
@@ -159,8 +162,8 @@ function App() {
         </div>
         <div className="hero-content">
           <div>
-            <h1>Task Blocks</h1>
-            <p className="header-copy">A soft workspace for tracking deploy tasks and backend checks.</p>
+            <h1>เช็คๆ อย่าลืม</h1>
+            <p className="header-copy">{headerCaption}</p>
           </div>
           <MascotCloud />
         </div>
