@@ -271,6 +271,8 @@ app.post('/api/line-webhook', async (req, res) => {
       const replyToken = event.replyToken;
       const userId = event.source.userId;
       
+      console.log('Message Text:', text);
+      
       const lowerText = text.toLowerCase();
       // Triggers: บอท, @ก้วยเจ๋ง, ก้วยเจ๋ง, @เจ๋ง, เจ๋ง
       if (
@@ -281,7 +283,10 @@ app.post('/api/line-webhook', async (req, res) => {
         lowerText.startsWith('เจ๋ง')
       ) {
         const queryText = text.replace(/^บอท|^@ก้วยเจ๋ง|^ก้วยเจ๋ง|^@เจ๋ง|^เจ๋ง/, '').trim();
-        await handleBotReply(replyToken, userId, queryText);
+        // Run asynchronously without awaiting to prevent webhook timeout (499)
+        handleBotReply(replyToken, userId, queryText).catch(err => {
+          console.error('Error handling bot reply:', err);
+        });
       }
     }
     console.log('====================================');
