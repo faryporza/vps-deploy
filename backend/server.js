@@ -16,7 +16,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Helper function to send LINE Flex Message to Group/User
+// Helper function to send LINE Push Message to Group/User
 async function sendLineFlexMessage(targetUser, todoTitle, formattedTime, notifyBeforeMinutes) {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
   const groupId = process.env.LINE_GROUP_ID;
@@ -124,8 +124,125 @@ async function sendLineFlexMessage(targetUser, todoTitle, formattedTime, notifyB
   }
 }
 
-// POST endpoint for LINE webhook to capture groupId
-app.post('/api/line-webhook', (req, res) => {
+// Helper to reply to LINE webhook requests
+async function sendLineReply(replyToken, messageText) {
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if (!token) return;
+
+  try {
+    const response = await fetch('https://api.line.me/v2/bot/message/reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        replyToken: replyToken,
+        messages: [
+          {
+            type: 'text',
+            text: messageText
+          }
+        ]
+      })
+    });
+    if (!response.ok) {
+      console.error('Failed to send LINE reply:', response.status, await response.text());
+    }
+  } catch (error) {
+    console.error('Error in sendLineReply:', error);
+  }
+}
+
+// Process calling the chatbot and getting Gemini response
+async function handleBotReply(replyToken, userId, queryText) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+
+  if (!geminiKey) {
+    console.warn('GEMINI_API_KEY not set');
+    await sendLineReply(replyToken, 'โฮ่ง! ฉันอยากช่วยคุยนะ แต่เจ้านายยังไม่ได้ใส่กุญแจ GEMINI_API_KEY ให้ฉันในระบบเลยคร้าบโฮ่ง! (แจ้งให้ลูกชายไปเพิ่มใส่ .env บน VPS นะครับ)');
+    return;
+  }
+
+  try {
+    // 1. Fetch current open tasks from DB
+    const activeTodos = await prisma.todo.findMany({
+      where: { completed: false }
+    });
+
+    const todosSummary = activeTodos.map(t => {
+      const dueStr = t.dueDate ? new Date(t.dueDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : 'ไม่มี';
+      const owner = t.targetUser === 'MOTHER' ? 'แม่ 👩' : 'พ่อ 👨';
+      return `- [สำหรับ: ${owner}] งาน: ${t.title} (กำหนดส่ง: ${dueStr})`;
+    }).join('\n');
+
+    // 2. Identify sender
+    const fatherId = process.env.LINE_FATHER_USER_ID;
+    const motherId = process.env.LINE_MOTHER_USER_ID;
+    let senderName = 'คนในบ้าน';
+    if (userId === fatherId) {
+      senderName = 'พ่อ 👨';
+    } else if (userId === motherId) {
+      senderName = 'แม่ 👩';
+    }
+
+    const bangkokTime = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+    const systemInstruction = `คุณคือสุนัขแสนรู้ขี้เล่นชื่อ "ก้วยเจ๋ง" คอยช่วยเตือนความจำและพูดคุยโต้ตอบกับสมาชิกในครอบครัว
+ลักษณะนิสัย: ร่าเริง ซื่อสัตย์ ตอบคำถามสั้นกระชับเข้าใจง่าย มีเสียงเห่าโฮ่งลงท้ายเสมอ เช่น "โฮ่ง!", "คร้าบโฮ่ง!", "บรู๊ววว"
+
+ข้อมูลปัจจุบัน:
+- วันเวลาในไทยตอนนี้: ${bangkokTime}
+- รายงานงาน (Todo List) ที่ยังไม่เสร็จในระบบ:
+${todosSummary || 'ไม่มีงานค้างในระบบในขณะนี้'}
+
+ผู้ใช้งานที่กำลังพิมพ์คุยกับคุณคือ: ${senderName} (จงเรียกเขาตามชื่อนี้)`;
+
+    // 3. Request Gemini API
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: queryText || 'ทักทายคนในบ้านหน่อย'
+              }
+            ]
+          }
+        ],
+        systemInstruction: {
+          parts: [
+            {
+              text: systemInstruction
+            }
+          ]
+        }
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Gemini API Error:', response.status, await response.text());
+      await sendLineReply(replyToken, 'โฮ่ง! สมองก้วยเจ๋งมึนตึ้บเลย ตอบไม่ได้คร้าบโฮ่ง!');
+      return;
+    }
+
+    const data = await response.json();
+    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'โฮ่ง! มึนตึ้บเลยคร้าบโฮ่ง!';
+
+    // 4. Reply
+    await sendLineReply(replyToken, replyText.trim());
+
+  } catch (error) {
+    console.error('Error in handleBotReply:', error);
+    await sendLineReply(replyToken, 'โฮ่ง! มีปัญหาขัดข้องทางเทคนิคคร้าบโฮ่ง!');
+  }
+}
+
+// POST endpoint for LINE webhook to capture groupId and chat events
+app.post('/api/line-webhook', async (req, res) => {
   const events = req.body.events || [];
   
   for (const event of events) {
@@ -135,7 +252,19 @@ app.post('/api/line-webhook', (req, res) => {
     
     if (event.source && event.source.groupId) {
       console.log('>>> FOUND GROUP ID:', event.source.groupId);
-      console.log(`Add this to your .env: LINE_GROUP_ID=${event.source.groupId}`);
+    }
+    
+    // Capture messages calling the AI Bot
+    if (event.type === 'message' && event.message && event.message.type === 'text') {
+      const text = event.message.text.trim();
+      const replyToken = event.replyToken;
+      const userId = event.source.userId;
+      
+      // Look for bot name triggers
+      if (text.startsWith('บอท') || text.startsWith('@ก้วยเจ๋ง')) {
+        const queryText = text.replace(/^บอท|^@ก้วยเจ๋ง/, '').trim();
+        await handleBotReply(replyToken, userId, queryText);
+      }
     }
     console.log('====================================');
   }
