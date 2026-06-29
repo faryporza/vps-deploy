@@ -64,6 +64,6 @@ jobs:
             npx prisma generate
             npx prisma db push
 
-            pm2 restart farypor-api || pm2 start npm --name farypor-api -- start
+            pm2 restart farypor-api || pm2 start server.js --name farypor-api
 
             pm2 save
