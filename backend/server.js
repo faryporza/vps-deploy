@@ -254,11 +254,10 @@ app.delete('/api/todos/:id', async (req, res) => {
 cron.schedule('* * * * *', async () => {
   try {
     const now = new Date();
-    // Find open todos that have a dueDate and have not been notified yet
+    // Find open todos that have a dueDate (will repeat alert every minute until marked completed)
     const pendingTodos = await prisma.todo.findMany({
       where: {
         completed: false,
-        isNotified: false,
         dueDate: {
           not: null
         }
