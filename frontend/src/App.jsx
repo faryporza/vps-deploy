@@ -34,6 +34,7 @@ function App() {
   const [newTodoTitle, setNewTodoTitle] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [notifyBeforeMinutes, setNotifyBeforeMinutes] = useState('0');
+  const [targetUser, setTargetUser] = useState('FATHER');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [apiStatus, setApiStatus] = useState('connecting');
@@ -78,7 +79,8 @@ function App() {
         body: JSON.stringify({
           title: newTodoTitle,
           dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-          notifyBeforeMinutes: parseInt(notifyBeforeMinutes)
+          notifyBeforeMinutes: parseInt(notifyBeforeMinutes),
+          targetUser: targetUser
         }),
       });
 
@@ -91,6 +93,7 @@ function App() {
       setNewTodoTitle('');
       setDueDate('');
       setNotifyBeforeMinutes('0');
+      setTargetUser('FATHER');
     } catch (err) {
       console.error(err);
       alert('Failed to add todo. Please try again.');
@@ -204,6 +207,17 @@ function App() {
             />
             <div className="form-alert-config">
               <div className="input-field">
+                <label>👤 สำหรับใคร</label>
+                <select
+                  value={targetUser}
+                  onChange={(e) => setTargetUser(e.target.value)}
+                  disabled={apiStatus === 'offline'}
+                >
+                  <option value="FATHER">พ่อ 👨</option>
+                  <option value="MOTHER">แม่ 👩</option>
+                </select>
+              </div>
+              <div className="input-field">
                 <label>📅 Due Date</label>
                 <input
                   type="datetime-local"
@@ -257,7 +271,12 @@ function App() {
                   <span className="checkmark"></span>
                 </label>
                 <div className="todo-details">
-                  <span className="todo-title">{todo.title}</span>
+                  <span className="todo-title">
+                    <span className={`user-badge ${todo.targetUser === 'MOTHER' ? 'mother' : 'father'}`}>
+                      {todo.targetUser === 'MOTHER' ? 'แม่' : 'พ่อ'}
+                    </span>
+                    {todo.title}
+                  </span>
                   {todo.dueDate && (
                     <span className="todo-due-date">
                       📅 Due: {new Date(todo.dueDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}

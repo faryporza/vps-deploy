@@ -16,8 +16,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Helper function to send LINE Push Message to Group/User
-async function sendLineMessage(messageText) {
+// Helper function to send LINE Flex Message to Group/User
+async function sendLineFlexMessage(targetUser, todoTitle, formattedTime, notifyBeforeMinutes) {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
   const groupId = process.env.LINE_GROUP_ID;
 
@@ -30,6 +30,80 @@ async function sendLineMessage(messageText) {
     return;
   }
 
+  const userDisplayName = targetUser === 'MOTHER' ? 'แม่ 👩' : 'พ่อ 👨';
+  const alertStr = notifyBeforeMinutes > 0 ? ` (ล่วงหน้า ${notifyBeforeMinutes} นาที)` : '';
+
+  const flexPayload = {
+    to: groupId,
+    messages: [
+      {
+        type: 'flex',
+        altText: `ก้วยเจ๋งมาตามแล้วจ้า 🐾 - ${todoTitle}`,
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#fcdee2',
+            contents: [
+              {
+                type: 'text',
+                text: 'ก้วยเจ๋งมาตาม 🐾',
+                weight: 'bold',
+                size: 'md',
+                color: '#8e5d60'
+              }
+            ]
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: `📌 งานสำหรับ: ${userDisplayName}`,
+                weight: 'bold',
+                size: 'md',
+                color: '#514a46'
+              },
+              {
+                type: 'text',
+                text: todoTitle,
+                wrap: true,
+                margin: 'sm',
+                size: 'sm',
+                color: '#827874'
+              },
+              {
+                type: 'text',
+                text: `📅 กำหนดส่ง: ${formattedTime}${alertStr}`,
+                margin: 'md',
+                size: 'xs',
+                color: '#a1a1aa'
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'button',
+                action: {
+                  type: 'uri',
+                  label: 'เปิดหน้าเว็บแอป 📱',
+                  uri: 'https://vps-deploy-pearl.vercel.app/'
+                },
+                style: 'primary',
+                color: '#ec9ea4'
+              }
+            ]
+          }
+        }
+      }
+    ]
+  };
+
   try {
     const response = await fetch('https://api.line.me/v2/bot/message/push', {
       method: 'POST',
@@ -37,24 +111,16 @@ async function sendLineMessage(messageText) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({
-        to: groupId,
-        messages: [
-          {
-            type: 'text',
-            text: messageText
-          }
-        ]
-      })
+      body: JSON.stringify(flexPayload)
     });
 
     if (!response.ok) {
-      console.error('Failed to send LINE message:', response.status, await response.text());
+      console.error('Failed to send LINE Flex message:', response.status, await response.text());
     } else {
-      console.log('Successfully sent LINE notification');
+      console.log('Successfully sent LINE Flex notification');
     }
   } catch (error) {
-    console.error('Error in sendLineMessage:', error);
+    console.error('Error in sendLineFlexMessage:', error);
   }
 }
 
@@ -92,7 +158,7 @@ app.get('/api/todos', async (req, res) => {
 
 // POST create todo
 app.post('/api/todos', async (req, res) => {
-  const { title, dueDate, notifyBeforeMinutes } = req.body;
+  const { title, dueDate, notifyBeforeMinutes, targetUser } = req.body;
   if (!title || typeof title !== 'string' || title.trim() === '') {
     return res.status(400).json({ error: 'Title is required' });
   }
@@ -103,6 +169,7 @@ app.post('/api/todos', async (req, res) => {
         title: title.trim(),
         dueDate: dueDate ? new Date(dueDate) : null,
         notifyBeforeMinutes: notifyBeforeMinutes !== undefined ? parseInt(notifyBeforeMinutes) : 0,
+        targetUser: targetUser || 'FATHER',
         isNotified: false
       }
     });
@@ -116,7 +183,7 @@ app.post('/api/todos', async (req, res) => {
 // PUT update todo
 app.put('/api/todos/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, completed, dueDate, notifyBeforeMinutes } = req.body;
+  const { title, completed, dueDate, notifyBeforeMinutes, targetUser } = req.body;
 
   try {
     const todoId = parseInt(id);
@@ -127,6 +194,7 @@ app.put('/api/todos/:id', async (req, res) => {
     const dataToUpdate = {};
     if (title !== undefined) dataToUpdate.title = title.trim();
     if (completed !== undefined) dataToUpdate.completed = completed;
+    if (targetUser !== undefined) dataToUpdate.targetUser = targetUser;
     
     if (dueDate !== undefined) {
       dataToUpdate.dueDate = dueDate ? new Date(dueDate) : null;
@@ -205,13 +273,8 @@ cron.schedule('* * * * *', async () => {
       // If current time is past or equal to the alert time
       if (now >= alertTime) {
         const thaiTime = dueDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-        let message = `\n⏰ แจ้งเตือนกำหนดส่งงาน!\n📌 งาน: ${todo.title}\n📅 ครบกำหนด: ${thaiTime}`;
         
-        if (todo.notifyBeforeMinutes > 0) {
-          message += `\n(ล่วงหน้า ${todo.notifyBeforeMinutes} นาที)`;
-        }
-
-        await sendLineMessage(message);
+        await sendLineFlexMessage(todo.targetUser, todo.title, thaiTime, todo.notifyBeforeMinutes);
 
         // Mark as notified so we don't send again
         await prisma.todo.update({

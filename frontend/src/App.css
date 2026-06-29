@@ -243,8 +243,34 @@ body {
 
 .form-alert-config {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.1fr 1.3fr 1.1fr;
   gap: 12px;
+}
+
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border-radius: 6px;
+  margin-right: 6px;
+  font-family: var(--font-display);
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.user-badge.father {
+  color: #2b5d8f;
+  background-color: rgba(225, 235, 248, 0.95);
+  border: 1px solid rgba(185, 208, 235, 0.8);
+}
+
+.user-badge.mother {
+  color: #8c3b4a;
+  background-color: rgba(252, 222, 226, 0.95);
+  border: 1px solid rgba(245, 185, 187, 0.8);
 }
 
 .input-field {

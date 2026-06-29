@@ -15,4 +15,5 @@ model Todo {
   dueDate             DateTime?
   notifyBeforeMinutes Int?      @default(0)
   isNotified          Boolean   @default(false)
+  targetUser          String    @default("FATHER")
 }
