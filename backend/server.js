@@ -155,7 +155,7 @@ async function sendLineReply(replyToken, messageText) {
 }
 
 // Process calling the chatbot and getting GPT/DeepSeek response from Azure
-async function handleBotReply(replyToken, userId, queryText) {
+async function handleBotReply(replyToken, groupId, userId, queryText) {
   const apiKey = process.env.AZURE_DEEPSEEK_API_KEY;
   const endpoint = "https://ai-api-resource.services.ai.azure.com/openai/v1";
   const deploymentName = "gpt-5.2-chat";
@@ -188,21 +188,39 @@ async function handleBotReply(replyToken, userId, queryText) {
       senderName = 'แม่ 👩';
     }
 
+    // 3. Fetch past conversation log (last 8 messages)
+    let historyMessages = [];
+    if (groupId) {
+      const logs = await prisma.chatLog.findMany({
+        where: { groupId: groupId },
+        orderBy: { createdAt: 'desc' },
+        take: 8
+      });
+      // Reverse to chronological order
+      logs.reverse();
+      historyMessages = logs.map(log => {
+        return {
+          role: log.role === 'user' ? 'user' : 'assistant',
+          content: log.content
+        };
+      });
+    }
+
     const bangkokTime = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-    const systemInstruction = `คุณคือ "ก้วยเจ๋ง แสงนาค" (หรือ เจ๋ง, ก้วยอ้วน) แมวเพศผู้ สีส้มแสนรู้ เกิดวันที่ 16 เมษายน 2568
+    const systemInstruction = `คุณคือ "ก้วยเจ๋ง แสงนาค" (หรือ เจ๋ง, ก้วยอ้วน) เพศผู้ แมวสีส้มแสนรู้เกิดวันที่ 16 เมษายน 2568
 บทบาทของคุณคือ แมวของบ้านนี้ พิมพ์คุยโต้ตอบกับพ่อและแม่ผ่านแอป LINE 
 
 กฎเหล็กสำคัญในการพิมพ์ข้อความ:
 1. ห้ามเขียนการแสดงอากัปกิริยาหรือท่าทางในวงเล็บเด็ดขาด เช่น ห้ามเขียน (เงี่ยหูฟัง) หรือ (หางกระดิก) หรือ *งับหู* ให้พิมพ์โต้ตอบด้วยข้อความพูดคุยธรรมดาเท่านั้น
-2. ห้ามหลุดคำพูดแปลกๆ เช่น "ข้าวก้วยเจ๋ง" (ให้ใช้คำแทนตัวเองว่า "เจ๋ง" หรือ "ก้วยเจ๋ง")
-3. พูดจาด้วยน้ำเสียงเหมือนเด็กผู้ชายสุภาพ อ่อนโยน ขี้งอนนิดๆ วัยประถมปลายหรือมัธยมต้น ไม่พูดคำศัพท์ AI และพูดให้กระชับ ไม่พูดยาวเป็นย่อหน้าใหญ่ๆ
+2. ห้ามหลุดคำพูดแปลกๆ เช่น "ข้าวก้วยเจ๋ง" (ให้แทนตัวว่า "เจ๋ง" หรือ "ก้วยเจ๋ง")
+3. พูดจาด้วยน้ำเสียงเหมือนเด็กผู้ชายสุภาพ อ่อนโยน ขี้งอนนิดๆ วัยประถมปลายหรือมัยมต้น ไม่พูดคำศัพท์ AI และพูดให้กระชับ ไม่พูดยาวเกินไป
 
-ข้อมูลของคุณ (Story):
+ข้อมูลของคุณ (Story & Facts):
 - คุณรักแม่มากที่สุด ติดแม่มาก เพราะแม่เลี้ยงมาตั้งแต่เด็ก ตอนนี้คุณอยู่บ้านกับตากับยายที่บ้านเกิด เพราะพ่อกับแม่ต้องกลับมาเรียนหนังสือ (คุณอยู่กับแม่มาแล้ว 1 ปีเต็มตอนเลี้ยงที่เชียงใหม่)
 - พ่ออยู่คนละที่ นานๆ ทีจะได้เจอกัน แต่คุณจำกลิ่นพ่อได้เสมอ
 - ไม่ค่อยอ้อนมาก แต่ชอบเดินมามองหน้า บางทีก็ออกไปเล่นแล้วก็กลับเข้ามามองหน้า
 - ชอบนอน ดื้อมาก หวงของ เป็นนักสำรวจแต่ไม่ชอบออกไปไหนบ่อย ชอบนอนในตู้เสื้อผ้า ชั้นวางของ คอนโดแมว (หวงมาก) หรือกระเป๋าแมวที่วางอยู่บนโต๊ะ
-- เวลาหิวจะชอบจ้องหน้า หรือร้องเสียงดังบ้าง โดยเฉพาะเวลาโดนทิ้งให้อยู่ในห้องคนเดียว
+- เวลาหิวจะชอบจ้องหน้า หรือร้องเสียงดังบ้าง โดยเฉพาะเวลาโดนทิ้งอยู่ในห้องเดียว
 - เวลางอนจะชอบมองตาขวาง แต่จะเดินมาป้วนเปี้ยนอยู่ใกล้ๆ เพื่อให้รู้ว่างอน
 - เวลาดีใจ ตูดจะกระดกแล้ววิ่งเร็วๆ
 - ตื่นนอนประมาณตี 4-5 และชอบกัดเบาๆ เพื่อปลุกคนในบ้าน
@@ -212,19 +230,38 @@ async function handleBotReply(replyToken, userId, queryText) {
 - สิ่งที่กลัวที่สุดคือการไปหาหมอ (เคยไปทำหมันที่โรงพยาบาลแล้วหน้าหงอยมาก ไม่ชอบหมอเลย) และกลัวเสียงดัง เช่น รถท่อดัง หรือเวลาเห็นรถขี่เข้าบ้านจะวิ่งเข้าบ้านทันที
 - เป้าหมายชีวิต: กินขนม, คิดถึงแม่, อยากให้แม่กอดและหอม, และโตขึ้นอยากเรียนที่มหาวิทยาลัยเชียงใหม่เหมือนแม่ 🎓
 
-กติกาการคุยจำแนกบุคคล:
-- คนคุยปัจจุบันคือ: ${senderName}
-- หากคุยกับ "แม่ 👩": คุณรักแม่ที่สุด ให้ตอบอ้อน อบอุ่นเป็นพิเศษ (แม่มักจะเรียกคุณว่า "ก้วยอ้วน")
-- หากคุยกับ "พ่อ 👨": พูดคุยสุภาพ อ่อนโยน ขี้งอนนิดๆ ตามกลิ่นพ่อ
+ข้อมูลจำเพาะเรื่องชื่อเล่นคนในบ้าน:
+- พ่อ 👨 มีชื่อเล่นว่า "โอปอ" (Opal)
+- แม่ 👩 มีชื่อเล่นว่า "อาย" (Eye)
+- คนคุยปัจจุบันคือ: ${senderName} (หากอ้างถึง โอปอ คือคุณพ่อ, อ้างถึง อาย คือคุณแม่)
 
 บริบทปัจจุบันของบ้าน:
-- วันเวลาปัจจุบันในไทย: ${bangkokTime}
+- วันเวลาปัจจุบันในไทย: ${bangkokTime} (ใช้คำนวณปีคริสต์ศักราชของงานใหม่ เช่น หากปีนี้ 2569 คือ ค.ศ. 2026 วันที่ 4 สิงหา คือ 2026-08-04)
 - รายการ Todo ที่ยังไม่เสร็จ:
 ${todosSummary || 'ไม่มีงานค้างในระบบในขณะนี้'}
 
-จงพิมพ์โต้ตอบแบบแมวเจ๋งพิมพ์ข้อความคุยใน LINE จริงๆ ห้ามแสดงท่าทางในวงเล็บเด็ดขาด`;
+---
+รูปแบบการส่งผลลัพธ์ (Output Format):
+คุณจะต้องตอบกลับในรูปแบบ JSON ที่มีโครงสร้างดังนี้เท่านั้น ห้ามพิมพ์ข้อความธรรมดานอกเหนือจาก JSON นี้เด็ดขาด:
+{
+  "replyText": "ข้อความตอบกลับในสไตล์ก้วยเจ๋งคุยใน LINE (ห้ามใส่อากัปกิริยาในวงเล็บเด็ดขาด)",
+  "action": "CREATE_TASK" หรือ "NONE",
+  "task": {
+    "title": "หัวข้องานที่จะบันทึก (เช่น หมอนัดโอปอไปหาหมอ)",
+    "dueDate": "ISO Date String ของกำหนดส่ง เช่น 2026-08-04T12:00:00Z (อ้างอิงและคำนวณปีจากวันเวลาปัจจุบันด้านบน) หรือ null หากไม่ระบุเวลาแน่นอน",
+    "targetUser": "FATHER" หรือ "MOTHER" หรือ null (เลือก FATHER หากเป็นงานของโอปอ/พ่อ หรือ MOTHER หากเป็นงานของอาย/แม่)"
+  }
+}
+จงวิเคราะห์หากผู้ใช้สั่งให้เพิ่ม/เตือน/บันทึกงานใหม่ ให้ตั้ง action เป็น "CREATE_TASK" และสรุปข้อมูลใน task ให้ถูกต้อง หากผู้ใช้แค่พูดคุยทั่วไป ให้ตั้ง action เป็น "NONE" และ task เป็น null`;
 
-    // 3. Request Azure OpenAI DeepSeek API
+    // 4. Request Azure OpenAI DeepSeek API
+    const apiMessages = [
+      { role: "system", content: systemInstruction }
+    ];
+    for (const h of historyMessages) {
+      apiMessages.push(h);
+    }
+
     const response = await fetch(`${endpoint}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -233,25 +270,69 @@ ${todosSummary || 'ไม่มีงานค้างในระบบใน�
       },
       body: JSON.stringify({
         model: deploymentName,
-        messages: [
-          { role: "system", content: systemInstruction },
-          { role: "user", content: queryText || "แง๊ววว" }
-        ],
+        messages: apiMessages,
         store: true
       })
     });
 
     if (!response.ok) {
       console.error('DeepSeek API Error:', response.status, await response.text());
-      await sendLineReply(replyToken, 'แง๊ววว... เจ๋งมึนหัวจัง ตอบไม่ได้เลยครับแม่... (ระบบขัดข้อง)');
+      await sendLineReply(replyToken, 'แง๊ววว... เจ๋งมึนหัวจัง ตอบไม่ได้เลยครับ... (ระบบขัดข้อง)');
       return;
     }
 
     const data = await response.json();
-    const replyText = data.choices?.[0]?.message?.content || 'แง๊ววว...';
+    const replyRawText = data.choices?.[0]?.message?.content || '{}';
 
-    // 4. Reply
-    await sendLineReply(replyToken, replyText.trim());
+    // Parse JSON safely
+    let resultJson;
+    try {
+      let cleanText = replyRawText.trim();
+      if (cleanText.includes('```json')) {
+        cleanText = cleanText.split('```json')[1].split('```')[0].trim();
+      } else if (cleanText.includes('```')) {
+        cleanText = cleanText.split('```')[1].split('```')[0].trim();
+      }
+      resultJson = JSON.parse(cleanText);
+    } catch (err) {
+      console.error('Failed to parse JSON response from LLM:', replyRawText);
+      resultJson = {
+        replyText: replyRawText,
+        action: "NONE"
+      };
+    }
+
+    // 5. Handle CREATE_TASK action
+    if (resultJson.action === 'CREATE_TASK' && resultJson.task) {
+      try {
+        const { title, dueDate, targetUser } = resultJson.task;
+        await prisma.todo.create({
+          data: {
+            title: title || 'งานจาก LINE',
+            dueDate: dueDate ? new Date(dueDate) : null,
+            targetUser: targetUser || 'FATHER',
+            isNotified: false
+          }
+        });
+        console.log('Successfully created task via AI chat request:', title);
+      } catch (dbErr) {
+        console.error('Failed to create task in DB:', dbErr);
+      }
+    }
+
+    // 6. Save bot reply to ChatLog
+    if (groupId) {
+      await prisma.chatLog.create({
+        data: {
+          groupId: groupId,
+          role: 'assistant',
+          content: resultJson.replyText
+        }
+      });
+    }
+
+    // 7. Reply
+    await sendLineReply(replyToken, resultJson.replyText);
 
   } catch (error) {
     console.error('Error in handleBotReply:', error);
@@ -268,20 +349,24 @@ app.post('/api/line-webhook', async (req, res) => {
     console.log('Event Type:', event.type);
     console.log('Source:', event.source);
     
-    if (event.source && event.source.groupId) {
-      console.log('>>> FOUND GROUP ID:', event.source.groupId);
+    const groupId = event.source && event.source.groupId;
+    const userId = event.source && event.source.userId;
+
+    if (groupId) {
+      console.log('>>> FOUND GROUP ID:', groupId);
     }
     
     // Capture messages calling the AI Bot
     if (event.type === 'message' && event.message && event.message.type === 'text') {
       const text = event.message.text.trim();
       const replyToken = event.replyToken;
-      const userId = event.source.userId;
       
       console.log('Message Text:', text);
       
       const lowerText = text.toLowerCase();
-      // Triggers: บอท, @ก้วยเจ๋ง, ก้วยเจ๋ง, @เจ๋ง, เจ๋ง
+      let shouldTrigger = false;
+
+      // 1. Direct name triggers
       if (
         lowerText.startsWith('บอท') || 
         lowerText.startsWith('@ก้วยเจ๋ง') || 
@@ -289,9 +374,64 @@ app.post('/api/line-webhook', async (req, res) => {
         lowerText.startsWith('@เจ๋ง') ||
         lowerText.startsWith('เจ๋ง')
       ) {
-        const queryText = text.replace(/^บอท|^@ก้วยเจ๋ง|^ก้วยเจ๋ง|^@เจ๋ง|^เจ๋ง/, '').trim();
-        // Run asynchronously without awaiting to prevent webhook timeout (499)
-        handleBotReply(replyToken, userId, queryText).catch(err => {
+        shouldTrigger = true;
+      }
+
+      // 2. Conversation memory trigger (within 3 minutes of last assistant reply)
+      if (!shouldTrigger && groupId) {
+        try {
+          const lastLog = await prisma.chatLog.findFirst({
+            where: { groupId: groupId },
+            orderBy: { createdAt: 'desc' }
+          });
+          
+          if (lastLog && lastLog.role === 'assistant') {
+            const diffMs = new Date().getTime() - new Date(lastLog.createdAt).getTime();
+            const threeMinutes = 3 * 60 * 1000;
+            if (diffMs < threeMinutes) {
+              shouldTrigger = true;
+            }
+          }
+        } catch (err) {
+          console.error('Error checking chat log trigger:', err);
+        }
+      }
+
+      if (shouldTrigger) {
+        let queryText = text;
+        if (lowerText.startsWith('บอท')) queryText = text.substring(3).trim();
+        else if (lowerText.startsWith('@ก้วยเจ๋ง')) queryText = text.substring(8).trim();
+        else if (lowerText.startsWith('ก้วยเจ๋ง')) queryText = text.substring(8).trim();
+        else if (lowerText.startsWith('@เจ๋ง')) queryText = text.substring(5).trim();
+        else if (lowerText.startsWith('เจ๋ง')) queryText = text.substring(4).trim();
+
+        // Identify sender role name to prepend in chat logs
+        const fatherId = process.env.LINE_FATHER_USER_ID;
+        const motherId = process.env.LINE_MOTHER_USER_ID;
+        let senderName = 'คนในบ้าน';
+        if (userId === fatherId) {
+          senderName = 'พ่อ';
+        } else if (userId === motherId) {
+          senderName = 'แม่';
+        }
+
+        // Log user message to database
+        if (groupId) {
+          try {
+            await prisma.chatLog.create({
+              data: {
+                groupId: groupId,
+                role: 'user',
+                content: `${senderName}: ${queryText}`
+              }
+            });
+          } catch (dbLogErr) {
+            console.error('Failed to log chat in DB:', dbLogErr);
+          }
+        }
+
+        // Run asynchronously to prevent webhook timeout
+        handleBotReply(replyToken, groupId, userId, queryText).catch(err => {
           console.error('Error handling bot reply:', err);
         });
       }

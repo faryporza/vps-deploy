@@ -17,3 +17,11 @@ model Todo {
   isNotified          Boolean   @default(false)
   targetUser          String    @default("FATHER")
 }
+
+model ChatLog {
+  id        Int      @id @default(autoincrement())
+  groupId   String   @db.VarChar(100)
+  role      String   @db.VarChar(20)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+}
