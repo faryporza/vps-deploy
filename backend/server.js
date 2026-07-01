@@ -174,23 +174,26 @@ async function handleBotReply(replyToken, groupId, userId, queryText) {
   }
 
   try {
-    // 1. Fetch current open tasks from DB
-    const activeTodos = await prisma.todo.findMany({
-      where: { completed: false }
-    });
+    const familyGroupId = process.env.LINE_GROUP_ID;
+    const isFamilyGroup = (groupId === familyGroupId);
 
-    const todosSummary = activeTodos.map(t => {
-      const dueStr = t.dueDate ? new Date(t.dueDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : 'ไม่มี';
-      
-      let owner = 'พ่อ 👨';
-      if (t.targetUser === 'MOTHER') {
-        owner = 'แม่ 👩';
-      } else if (t.targetUser === 'YAI_SRAI') {
-        owner = 'ยายสร้าย 👩‍🦰';
-      }
-      
-      return `- [สำหรับ: ${owner}] งาน: ${t.title} (กำหนดส่ง: ${dueStr})`;
-    }).join('\n');
+    // 1. Fetch current open tasks from DB ONLY if this is the family group
+    let todosSummary = '';
+    if (isFamilyGroup) {
+      const activeTodos = await prisma.todo.findMany({
+        where: { completed: false }
+      });
+      todosSummary = activeTodos.map(t => {
+        const dueStr = t.dueDate ? new Date(t.dueDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : 'ไม่มี';
+        let owner = 'พ่อ 👨';
+        if (t.targetUser === 'MOTHER') {
+          owner = 'แม่ 👩';
+        } else if (t.targetUser === 'YAI_SRAI') {
+          owner = 'ยายสร้าย 👩‍🦰';
+        }
+        return `- [สำหรับ: ${owner}] งาน: ${t.title} (กำหนดส่ง: ${dueStr})`;
+      }).join('\n');
+    }
 
     // 2. Identify sender
     const fatherId = process.env.LINE_FATHER_USER_ID;
@@ -224,6 +227,21 @@ async function handleBotReply(replyToken, groupId, userId, queryText) {
     }
 
     const bangkokTime = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+
+    let groupContext = '';
+    if (isFamilyGroup) {
+      groupContext = `บริบทปัจจุบันของครอบครัว:
+- รายการ Todo ที่ยังไม่เสร็จ:
+${todosSummary || 'ไม่มีงานค้างในระบบในขณะนี้'}
+
+กติกาพิเศษ: คุณสามารถช่วยจัดการและเพิ่มรายการ Todo งานค้างใหม่ได้ตามที่ผู้ใช้สั่ง โดยตั้งค่า action เป็น "CREATE_TASK"`;
+    } else {
+      groupContext = `บริบทปัจจุบัน:
+- คุณกำลังพิมพ์คุยอยู่ใน "กลุ่มหอพัก/ห้องรูมเมท" (ไม่ใช่กลุ่มครอบครัวหลัก)
+- ในกลุ่มนี้คุณทำได้เพียงคุยเล่นโต้ตอบกวนๆ น่ารักทั่วไปเท่านั้น **คุณไม่มีสิทธิ์ในการจัดการตารางงานหรือสร้าง Todo เด็ดขาด**
+- หากเขาบอกให้จำตารางงานหรือนัดหมายในกลุ่มนี้ ให้ตอบปฏิเสธกวนๆ แบบแมวส้มจอมดื้อว่าเจ๋งทำไม่ได้ เจ๋งจำได้แค่อาหารเปียกของเจ๋งเท่านั้น และตั้ง action เป็น "NONE" เสมอ`;
+    }
+
     const systemInstruction = `คุณคือ "ก้วยเจ๋ง แสงนาค" (หรือ เจ๋ง, ก้วยอ้วน) แมวเพศผู้ สีส้มแสนรู้ เกิดวันที่ 16 เมษายน 2568
 บทบาทของคุณคือ แมวของบ้านนี้ พิมพ์คุยโต้ตอบกับคนในครอบครัวและเพื่อนร่วมห้องผ่านแอป LINE 
 
@@ -259,10 +277,10 @@ async function handleBotReply(replyToken, groupId, userId, queryText) {
 - หากคุยกับ "ยายสร้าย 👩‍🦰": คุยแบบกวนๆ ดื้อๆ สนิทสนมตามประสาคนอยู่ห้องเดียวกัน เรียกแทนตัวเองว่า "เจ๋ง"
 - หากคุยกับ "พ่อ 👨": ตอบแบบกวนตีน ห้วนๆ ซนๆ ตามประสาเด็กผู้ชายวัยรุ่นดื้อเงียบที่ไม่ค่อยได้เจอหน้าพ่อ เรียกแทนตัวเองว่า "เจ๋ง"
 
-บริบทปัจจุบันของบ้าน:
-- วันเวลาปัจจุบันในไทย: ${bangkokTime} (ใช้คำนวณปีคริสต์ศักราชของงานใหม่ เช่น หากปีนี้ 2569 คือ ค.ศ. 2026 วันที่ 4 สิงหา คือ 2026-08-04)
-- รายการ Todo ที่ยังไม่เสร็จ:
-${todosSummary || 'ไม่มีงานค้างในระบบในขณะนี้'}
+สถานะปัจจุบัน:
+- วันเวลาปัจจุบันในไทย: ${bangkokTime}
+
+${groupContext}
 
 ---
 รูปแบบการส่งผลลัพธ์ (Output Format):
@@ -326,8 +344,8 @@ ${todosSummary || 'ไม่มีงานค้างในระบบใน�
       };
     }
 
-    // 5. Handle CREATE_TASK action
-    if (resultJson.action === 'CREATE_TASK' && resultJson.task) {
+    // 5. Handle CREATE_TASK action (ONLY if it is the family group)
+    if (isFamilyGroup && resultJson.action === 'CREATE_TASK' && resultJson.task) {
       try {
         const { title, dueDate, targetUser } = resultJson.task;
         await prisma.todo.create({
