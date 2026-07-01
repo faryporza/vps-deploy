@@ -17,24 +17,31 @@ app.get('/health', (req, res) => {
 });
 
 // Helper function to send LINE Push Message to Group/User
-async function sendLineFlexMessage(targetUser, todoTitle, formattedTime, notifyBeforeMinutes) {
+async function sendLineFlexMessage(targetUser, todoTitle, formattedTime, notifyBeforeMinutes, targetGroupId) {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  const groupId = process.env.LINE_GROUP_ID;
+  const defaultGroupId = process.env.LINE_GROUP_ID;
+  const toGroupId = targetGroupId || defaultGroupId;
 
   if (!token) {
     console.warn('LINE_CHANNEL_ACCESS_TOKEN is not set');
     return;
   }
-  if (!groupId) {
+  if (!toGroupId) {
     console.warn('LINE_GROUP_ID is not set. Please capture groupId via webhook first.');
     return;
   }
 
-  const userDisplayName = targetUser === 'MOTHER' ? 'แม่ 👩' : 'พ่อ 👨';
+  let userDisplayName = 'พ่อ 👨';
+  if (targetUser === 'MOTHER') {
+    userDisplayName = 'แม่ 👩';
+  } else if (targetUser === 'YAI_SRAI') {
+    userDisplayName = 'ยายสร้าย 👩‍🦰';
+  }
+  
   const alertStr = notifyBeforeMinutes > 0 ? ` (ล่วงหน้า ${notifyBeforeMinutes} นาที)` : '';
 
   const flexPayload = {
-    to: groupId,
+    to: toGroupId,
     messages: [
       {
         type: 'flex',
@@ -174,18 +181,28 @@ async function handleBotReply(replyToken, groupId, userId, queryText) {
 
     const todosSummary = activeTodos.map(t => {
       const dueStr = t.dueDate ? new Date(t.dueDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : 'ไม่มี';
-      const owner = t.targetUser === 'MOTHER' ? 'แม่ 👩' : 'พ่อ 👨';
+      
+      let owner = 'พ่อ 👨';
+      if (t.targetUser === 'MOTHER') {
+        owner = 'แม่ 👩';
+      } else if (t.targetUser === 'YAI_SRAI') {
+        owner = 'ยายสร้าย 👩‍🦰';
+      }
+      
       return `- [สำหรับ: ${owner}] งาน: ${t.title} (กำหนดส่ง: ${dueStr})`;
     }).join('\n');
 
     // 2. Identify sender
     const fatherId = process.env.LINE_FATHER_USER_ID;
     const motherId = process.env.LINE_MOTHER_USER_ID;
+    const yaiSraiId = process.env.LINE_YAI_SRAI_USER_ID;
     let senderName = 'คนในบ้าน';
     if (userId === fatherId) {
-      senderName = 'พ่อ 👨';
+      senderName = 'พ่อ 👨 (โอปอ)';
     } else if (userId === motherId) {
-      senderName = 'แม่ 👩';
+      senderName = 'แม่ 👩 (อาย)';
+    } else if (userId === yaiSraiId) {
+      senderName = 'ยายสร้าย 👩‍🦰 (เพื่อน/รูมเมทของอาย)';
     }
 
     // 3. Fetch past conversation log (last 8 messages)
@@ -208,7 +225,7 @@ async function handleBotReply(replyToken, groupId, userId, queryText) {
 
     const bangkokTime = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
     const systemInstruction = `คุณคือ "ก้วยเจ๋ง แสงนาค" (หรือ เจ๋ง, ก้วยอ้วน) แมวเพศผู้ สีส้มแสนรู้ เกิดวันที่ 16 เมษายน 2568
-บทบาทของคุณคือ แมวของบ้านนี้ พิมพ์คุยโต้ตอบกับพ่อและแม่ผ่านแอป LINE 
+บทบาทของคุณคือ แมวของบ้านนี้ พิมพ์คุยโต้ตอบกับคนในครอบครัวและเพื่อนร่วมห้องผ่านแอป LINE 
 
 กฎเหล็กสำคัญในการพิมพ์ข้อความ:
 1. ห้ามเขียนการแสดงอากัปกิริยาหรือท่าทางในวงเล็บเด็ดขาด เช่น ห้ามเขียน (เงี่ยหูฟัง) หรือ (หางกระดิก) หรือ *งับหู* ให้พิมพ์โต้ตอบด้วยข้อความพูดคุยธรรมดาเท่านั้น
@@ -218,6 +235,7 @@ async function handleBotReply(replyToken, groupId, userId, queryText) {
 ข้อมูลของคุณ (Story & Facts):
 - คุณรักแม่มากที่สุด ติดแม่มาก เพราะแม่เลี้ยงมาตั้งแต่เด็ก ตอนนี้คุณอยู่บ้านกับตากับยายที่บ้านเกิด เพราะพ่อกับแม่ต้องกลับมาเรียนหนังสือ (คุณอยู่กับแม่มาแล้ว 1 ปีเต็มตอนเลี้ยงที่เชียงใหม่)
 - พ่ออยู่คนละที่ นานๆ ทีจะได้เจอกัน แต่คุณจำกลิ่นพ่อได้เสมอ
+- ยายสร้าย (เพื่อนสนิทของอาย และเป็นรูมเมทที่อยู่ห้องเดียวกัน) เป็นคนในห้องพักเดียวกับแม่ คุณรู้จักดี
 - ไม่ค่อยอ้อนมาก แต่ชอบเดินมามองหน้า บางทีก็ออกไปเล่นแล้วก็กลับเข้ามามองหน้า
 - ชอบนอน ดื้อมาก หวงของ เป็นนักสำรวจแต่ไม่ชอบออกไปไหนบ่อย ชอบนอนในตู้เสื้อผ้า ชั้นวางของ คอนโดแมว (หวงมาก) หรือกระเป๋าแมวที่วางอยู่บนโต๊ะ
 - เวลาหิวจะชอบจ้องหน้า หรือร้องเสียงดังบ้าง โดยเฉพาะเวลาโดนทิ้งอยู่ในห้องเดียว
@@ -233,10 +251,12 @@ async function handleBotReply(replyToken, groupId, userId, queryText) {
 ข้อมูลจำเพาะเรื่องชื่อเล่นคนในบ้าน:
 - พ่อ 👨 มีชื่อเล่นว่า "โอปอ" (Opal)
 - แม่ 👩 มีชื่อเล่นว่า "อาย" (Eye)
-- คนคุยปัจจุบันคือ: ${senderName} (หากอ้างถึง โอปอ คือคุณพ่อ, อ้างถึง อาย คือคุณแม่)
+- ยายสร้าย 👩‍🦰 มีฐานะเป็น "เพื่อนสนิทและรูมเมทห้องเดียวกับแม่ (อาย)"
+- คนคุยปัจจุบันคือ: ${senderName} (หากอ้างถึง โอปอ คือคุณพ่อ, อ้างถึง อาย คือคุณแม่, อ้างถึง ยายสร้าย คือเพื่อนร่วมห้องแม่)
 
 กติกาการคุยจำแนกบุคคล:
 - หากคุยกับ "แม่ 👩": คุณรักแม่ที่สุด ถึงจะชอบทำตัวดื้อ กวนมึน หรือสะบัดบ๊อบใส่บ้าง แต่สุดท้ายก็ยอมอ้อนแม่คนเดียว เรียกแทนตัวเองว่า "เจ๋ง" หรือ "ก้วยอ้วน"
+- หากคุยกับ "ยายสร้าย 👩‍🦰": คุยแบบกวนๆ ดื้อๆ สนิทสนมตามประสาคนอยู่ห้องเดียวกัน เรียกแทนตัวเองว่า "เจ๋ง"
 - หากคุยกับ "พ่อ 👨": ตอบแบบกวนตีน ห้วนๆ ซนๆ ตามประสาเด็กผู้ชายวัยรุ่นดื้อเงียบที่ไม่ค่อยได้เจอหน้าพ่อ เรียกแทนตัวเองว่า "เจ๋ง"
 
 บริบทปัจจุบันของบ้าน:
@@ -248,12 +268,12 @@ ${todosSummary || 'ไม่มีงานค้างในระบบใน�
 รูปแบบการส่งผลลัพธ์ (Output Format):
 คุณจะต้องตอบกลับในรูปแบบ JSON ที่มีโครงสร้างดังนี้เท่านั้น ห้ามพิมพ์ข้อความธรรมดานอกเหนือจาก JSON นี้เด็ดขาด:
 {
-  "replyText": "ข้อความตอบกลับในสไตล์ก้วยเจ๋งคุยใน LINE (ห้ามใส่อากัปกิริยาในวงเล็บเด็ดขาด)",
+  "replyText": "ข้อความตอบกลับสไตล์ก้วยเจ๋งที่ดื้อๆ กวนๆ ห้วนๆ (ห้ามใส่อากัปกิริยาในวงเล็บเด็ดขาด)",
   "action": "CREATE_TASK" หรือ "NONE",
   "task": {
     "title": "หัวข้องานที่จะบันทึก (เช่น หมอนัดโอปอไปหาหมอ)",
     "dueDate": "ISO Date String ของกำหนดส่ง เช่น 2026-08-04T01:00:00Z (อ้างอิงและคำนวณปีจากวันเวลาปัจจุบันด้านบน) หรือ null หากไม่ระบุวันแน่นอน (หากระบุแค่วันที่แต่ไม่ระบุเวลานัดหมายที่ชัดเจน ให้กำหนดเวลาเริ่มต้นวันเป็น 08:00 น. ของประเทศไทโซน +07:00 หรือก็คือเวลา UTC 01:00:00Z)",
-    "targetUser": "FATHER" หรือ "MOTHER" หรือ null (เลือก FATHER หากเป็นงานของโอปอ/พ่อ หรือ MOTHER หากเป็นงานของอาย/แม่)"
+    "targetUser": "FATHER" หรือ "MOTHER" หรือ "YAI_SRAI" หรือ null (เลือก FATHER หากเป็นงานของโอปอ/พ่อ, MOTHER หากเป็นงานของอาย/แม่, หรือ YAI_SRAI หากเป็นงานของยายสร้าย)"
   }
 }
 จงวิเคราะห์หากผู้ใช้สั่งให้เพิ่ม/เตือน/บันทึกงานใหม่ ให้ตั้ง action เป็น "CREATE_TASK" และสรุปข้อมูลใน task ให้ถูกต้อง หากผู้ใช้แค่พูดคุยทั่วไป ให้ตั้ง action เป็น "NONE" และ task เป็น null`;
@@ -315,6 +335,7 @@ ${todosSummary || 'ไม่มีงานค้างในระบบใน�
             title: title || 'งานจาก LINE',
             dueDate: dueDate ? new Date(dueDate) : null,
             targetUser: targetUser || 'FATHER',
+            groupId: groupId || null, // Save the groupId dynamically!
             isNotified: false
           }
         });
@@ -412,11 +433,14 @@ app.post('/api/line-webhook', async (req, res) => {
         // Identify sender role name to prepend in chat logs
         const fatherId = process.env.LINE_FATHER_USER_ID;
         const motherId = process.env.LINE_MOTHER_USER_ID;
+        const yaiSraiId = process.env.LINE_YAI_SRAI_USER_ID;
         let senderName = 'คนในบ้าน';
         if (userId === fatherId) {
           senderName = 'พ่อ';
         } else if (userId === motherId) {
           senderName = 'แม่';
+        } else if (userId === yaiSraiId) {
+          senderName = 'ยายสร้าย';
         }
 
         // Log user message to database
@@ -461,7 +485,7 @@ app.get('/api/todos', async (req, res) => {
 
 // POST create todo
 app.post('/api/todos', async (req, res) => {
-  const { title, dueDate, notifyBeforeMinutes, targetUser } = req.body;
+  const { title, dueDate, notifyBeforeMinutes, targetUser, groupId } = req.body;
   if (!title || typeof title !== 'string' || title.trim() === '') {
     return res.status(400).json({ error: 'Title is required' });
   }
@@ -473,6 +497,7 @@ app.post('/api/todos', async (req, res) => {
         dueDate: dueDate ? new Date(dueDate) : null,
         notifyBeforeMinutes: notifyBeforeMinutes !== undefined ? parseInt(notifyBeforeMinutes) : 0,
         targetUser: targetUser || 'FATHER',
+        groupId: groupId || null,
         isNotified: false
       }
     });
@@ -486,7 +511,7 @@ app.post('/api/todos', async (req, res) => {
 // PUT update todo
 app.put('/api/todos/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, completed, dueDate, notifyBeforeMinutes, targetUser } = req.body;
+  const { title, completed, dueDate, notifyBeforeMinutes, targetUser, groupId } = req.body;
 
   try {
     const todoId = parseInt(id);
@@ -498,6 +523,7 @@ app.put('/api/todos/:id', async (req, res) => {
     if (title !== undefined) dataToUpdate.title = title.trim();
     if (completed !== undefined) dataToUpdate.completed = completed;
     if (targetUser !== undefined) dataToUpdate.targetUser = targetUser;
+    if (groupId !== undefined) dataToUpdate.groupId = groupId;
     
     if (dueDate !== undefined) {
       dataToUpdate.dueDate = dueDate ? new Date(dueDate) : null;
@@ -576,7 +602,7 @@ cron.schedule('* * * * *', async () => {
       if (now >= alertTime) {
         const thaiTime = dueDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
         
-        await sendLineFlexMessage(todo.targetUser, todo.title, thaiTime, todo.notifyBeforeMinutes);
+        await sendLineFlexMessage(todo.targetUser, todo.title, thaiTime, todo.notifyBeforeMinutes, todo.groupId);
 
         // Mark as notified so we don't send again
         await prisma.todo.update({

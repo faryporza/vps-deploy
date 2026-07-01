@@ -16,6 +16,7 @@ model Todo {
   notifyBeforeMinutes Int?      @default(0)
   isNotified          Boolean   @default(false)
   targetUser          String    @default("FATHER")
+  groupId             String?   @db.VarChar(100)
 }
 
 model ChatLog {

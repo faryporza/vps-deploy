@@ -273,6 +273,12 @@ body {
   border: 1px solid rgba(245, 185, 187, 0.8);
 }
 
+.user-badge.yai-srai {
+  color: #5c3c8f;
+  background-color: rgba(239, 229, 238, 0.95);
+  border: 1px solid rgba(220, 200, 220, 0.8);
+}
+
 .input-field {
   display: flex;
   flex-direction: column;

@@ -215,6 +215,7 @@ function App() {
                 >
                   <option value="FATHER">พ่อ 👨</option>
                   <option value="MOTHER">แม่ 👩</option>
+                  <option value="YAI_SRAI">ยายสร้าย 👩‍🦰</option>
                 </select>
               </div>
               <div className="input-field">
@@ -272,8 +273,14 @@ function App() {
                 </label>
                 <div className="todo-details">
                   <span className="todo-title">
-                    <span className={`user-badge ${todo.targetUser === 'MOTHER' ? 'mother' : 'father'}`}>
-                      {todo.targetUser === 'MOTHER' ? 'แม่' : 'พ่อ'}
+                    <span className={`user-badge ${
+                      todo.targetUser === 'MOTHER' ? 'mother' : 
+                      todo.targetUser === 'YAI_SRAI' ? 'yai-srai' : 'father'
+                    }`}>
+                      {
+                        todo.targetUser === 'MOTHER' ? 'แม่' : 
+                        todo.targetUser === 'YAI_SRAI' ? 'ยายสร้าย' : 'พ่อ'
+                      }
                     </span>
                     {todo.title}
                   </span>
